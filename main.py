@@ -3,7 +3,6 @@ import flask_cors
 import joblib
 from flask import Flask, request, jsonify
 import numpy as np
-model = joblib.load("model/isolation_forest_model.pkl")
 
 app = Flask(__name__)
 flask_cors.CORS(app)
@@ -15,7 +14,7 @@ def home():
 
 app = Flask(__name__)
 
-model = joblib.load("model/isolation_forest_model.pkl")
+model = joblib.load("isolation_forest_model.pkl")
 
 @app.route("/predict", methods=["POST"])
 def predict():
