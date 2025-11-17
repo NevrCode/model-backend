@@ -17,6 +17,7 @@ cred_dict = json.loads(firebase_json)
 
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 buffer = []
 
@@ -30,12 +31,20 @@ def save_batch():
 
         data_to_save = buffer.copy()
         buffer.clear()
-
-        doc_ref = db.collection("sensors").document()
-        doc_ref.set({
-            "timestamp": datetime.now().isoformat(),
-            "data": data_to_save
-        })
+        
+        batch = db.batch()
+        totalCounter = 0
+        
+        while totalCounter < len(data_to_save):
+            batchCounter = 0
+            while batchCounter < 500 and totalCounter < len(data_to_save):
+                doc_ref = db.collection("currents").document()
+                batch.set(doc_ref, data_to_save[totalCounter])
+                batchCounter += 1
+                totalCounter += 1
+            batch.commit()
+        
+        
 
         print(f"Saved batch: {len(data_to_save)} records")
 
@@ -53,10 +62,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
-        payload["received_at"] = datetime.now().isoformat()
-
-        print("Received:", payload)
-        buffer.append(payload)
+        buffer.append(payload) 
 
     except Exception as e:
         print("Error:", e)
@@ -69,19 +75,18 @@ client.on_message = on_message
 
 print("Connecting to MQTT...")
 client.connect(BROKER_URL, 8883)
-client.loop_forever()
+threading.Thread(target=client.loop_forever, daemon=True).start()
 
 app = Flask(__name__)
 flask_cors.CORS(app)
 
+model = joblib.load("isolation_forest_model.pkl")
 
 @app.route('/')
 def home():
     return "Anomaly Detection Service is Running"
 
-app = Flask(__name__)
 
-model = joblib.load("isolation_forest_model.pkl")
 
 @app.route("/predict", methods=["POST"])
 def predict():
