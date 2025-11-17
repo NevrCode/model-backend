@@ -24,7 +24,7 @@ buffer = []
 def save_batch():
     global buffer
     while True:
-        time.sleep(60)  # save every 60 seconds
+        time.sleep(1800)  # save every 30 minutes
 
         if len(buffer) == 0:
             continue
@@ -38,7 +38,7 @@ def save_batch():
         while totalCounter < len(data_to_save):
             batchCounter = 0
             while batchCounter < 500 and totalCounter < len(data_to_save):
-                doc_ref = db.collection("currents").document()
+                doc_ref = db.collection("read_datas").document()
                 batch.set(doc_ref, data_to_save[totalCounter])
                 batchCounter += 1
                 totalCounter += 1
