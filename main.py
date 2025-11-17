@@ -53,7 +53,7 @@ threading.Thread(target=save_batch, daemon=True).start()
 BROKER_URL = os.getenv("MQTT_BROKER")
 USERNAME = os.getenv("MQTT_USERNAME")
 PASSWORD = os.getenv("MQTT_PASSWORD")
-TOPIC = "test/inbound"
+TOPIC = "get/data/sensors"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
