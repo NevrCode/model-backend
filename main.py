@@ -104,10 +104,18 @@ def predict():
     features = np.array([[ data[f] for f in feature_order ]], dtype=float)
 
     pred = model.predict(features)[0] 
-
+    from fcm_function import send_anomaly_notification
+    if pred == 1:
+        send_anomaly_notification("device_123", data['current_rms'])
     return jsonify({
         "prediction": int(pred)
     })
+
+@app.route("/test-fcm", methods=["GET"])
+def test_fcm():
+    from fcm_function import send_anomaly_notification
+    send_anomaly_notification("device_123", 15.7)
+    
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
 
