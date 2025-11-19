@@ -24,7 +24,7 @@ buffer = []
 def save_batch():
     global buffer
     while True:
-        time.sleep(10)  
+        time.sleep(30)  
 
         if len(buffer) == 0:
             continue
@@ -75,7 +75,6 @@ client.on_message = on_message
 
 print("Connecting to MQTT...")
 client.connect(BROKER_URL, 8883)
-client.loop_forever()
 threading.Thread(target=client.loop_forever, daemon=True).start()
 
 
