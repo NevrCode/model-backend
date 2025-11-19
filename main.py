@@ -81,7 +81,7 @@ threading.Thread(target=client.loop_forever, daemon=True).start()
 app = Flask(__name__)
 flask_cors.CORS(app)
 
-model = joblib.load("isolation_forest_model_2.pkl")
+model = joblib.load("isolation_forest_model.pkl")
 
 @app.route('/')
 def home():
