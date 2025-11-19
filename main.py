@@ -17,7 +17,7 @@ from feature_extractions import extract_features
 
 app = Flask(__name__)
 flask_cors.CORS(app)
-model = joblib.load("isolation_forest_model.pkl")
+model = joblib.load("isolation_forest_model_3.pkl")
 
 
 firebase_json = os.getenv("FIREBASE_CRED")
@@ -33,12 +33,14 @@ PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = "get/data/sensors"
 
 buffer = []
-BUFFER_SIZE = 20
+BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
 buffer_busV = deque(maxlen=BUFFER_SIZE)
 buffer_current = deque(maxlen=BUFFER_SIZE)
 
+anomaly_sent = False   
 def prediction_loop():
+    global anomaly_sent
     while True:
         time.sleep(1)
 
@@ -46,10 +48,17 @@ def prediction_loop():
             X = extract_features(list(buffer_busV),list(buffer_shuntV), list(buffer_current))
 
             prediction = model.predict(X)[0]
-            print("Prediksi:", prediction)
 
-            if prediction == -1:  
-                send_anomaly_notification()
+            if prediction == -1:
+                if not anomaly_sent:    # Hanya kirim sekali
+                    send_anomaly_notification()
+                    anomaly_sent = True
+                    print("⚠️ Notif dikirim")
+            else:
+                # Reset jika kondisi kembali normal
+                if anomaly_sent:
+                    print("System kembali normal, reset flag")
+                anomaly_sent = False
 
 def save_batch():
     global buffer
