@@ -114,6 +114,8 @@ def predict():
 @app.route("/test-fcm", methods=["GET"])
 def test_fcm():
     send_anomaly_notification("device_123", 15.7)
+    return jsonify({"status": "Notification sent"})
+
     
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
