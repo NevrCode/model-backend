@@ -45,17 +45,21 @@ def prediction_loop():
         time.sleep(1)
 
         if len(buffer_shuntV) == BUFFER_SIZE:
-            X = extract_features(list(buffer_busV),list(buffer_shuntV), list(buffer_current))
+            X = extract_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
             prediction = model.predict(x_scaled)[0]
 
+            normal_counter = 0
             if prediction == -1:
+                normal_counter = 0
                 if not anomaly_sent:    # Hanya kirim sekali
                     send_anomaly_notification()
                     anomaly_sent = True
                     print("⚠️ Notif dikirim")
             else:
-                # Reset jika kondisi kembali normal
+                normal_counter += 1
+                if normal_counter >= 3:
+                    anomaly_sent = False
                 if anomaly_sent:
                     print("System kembali normal, reset flag")
                 anomaly_sent = False
