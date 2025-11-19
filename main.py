@@ -48,7 +48,7 @@ def prediction_loop():
             prediction = model.predict(X)[0]
             print("Prediksi:", prediction)
 
-            if prediction == 1:  
+            if prediction == -1:  
                 send_anomaly_notification()
 
 def save_batch():
