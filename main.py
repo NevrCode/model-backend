@@ -86,10 +86,8 @@ def save_batch():
                 batchCounter += 1
                 totalCounter += 1
             batch.commit()
-        print(f"Saved batch: {len(data_to_save)} records")
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with code:", rc)
     client.subscribe(TOPIC)
 
 def on_message(client, userdata, msg):
@@ -110,7 +108,6 @@ client.tls_set()
 client.on_connect = on_connect
 client.on_message = on_message
 
-print("Connecting to MQTT...")
 client.connect(BROKER_URL, 8883)
 
 
