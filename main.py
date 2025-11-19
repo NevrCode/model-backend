@@ -17,8 +17,8 @@ from feature_extractions import extract_features
 
 app = Flask(__name__)
 flask_cors.CORS(app)
-model = joblib.load("isolation_forest_model_3.pkl")
-
+model = joblib.load("isolation_forest_model_20_feature.pkl")
+scaler = joblib.load("scaler.pkl")
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
@@ -46,8 +46,8 @@ def prediction_loop():
 
         if len(buffer_shuntV) == BUFFER_SIZE:
             X = extract_features(list(buffer_busV),list(buffer_shuntV), list(buffer_current))
-
-            prediction = model.predict(X)[0]
+            x_scaled = scaler.transform(X)
+            prediction = model.predict(x_scaled)[0]
 
             if prediction == -1:
                 if not anomaly_sent:    # Hanya kirim sekali

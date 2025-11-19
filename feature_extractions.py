@@ -10,10 +10,6 @@ def calc_entropy(x):
     return stats.entropy(x)
 
 def thd(x):
-    """
-    THD sederhana berbasis FFT:
-    THD = sqrt(sum(harmonics^2)) / fundamental
-    """
     fft_vals = np.abs(np.fft.rfft(x))
     if len(fft_vals) < 3:
         return 0
@@ -25,45 +21,38 @@ def thd(x):
 def zcr(x):
     return np.sum(np.diff(np.sign(x)) != 0)
 
-def extract_features(busV, shuntV, current):
-    busV = np.array(busV)
+def extract_features(shuntV, current):
     shuntV = np.array(shuntV)
     current = np.array(current)
 
-    power = busV * shuntV
+    power = current * shuntV
     power_error = power - np.mean(power)
 
     # Buat dictionary sesuai urutan fitur
     features = [
-        crest_factor(busV),                 # busV_crest
-        calc_entropy(busV),                 # busV_entropy
-        stats.kurtosis(busV),               # busV_kurt
-        np.sqrt(np.mean(busV**2)),          # busV_rms
-
         crest_factor(current),              # current_crest
         calc_entropy(current),              # current_entropy
         stats.kurtosis(current),            # current_kurt
         np.sqrt(np.mean(current**2)),       # current_rms
         stats.skew(current),                # current_skew
+        
         thd(current),                       # current_thd
-        zcr(current),                       # current_zcr
-
         crest_factor(power),                # power_crest
         calc_entropy(power),                # power_entropy
         np.mean(np.abs(power_error)),       # power_error_abs_mean
         np.mean(power_error),               # power_error_mean
+        
         stats.kurtosis(power),              # power_kurt
         np.sqrt(np.mean(power**2)),         # power_rms
         stats.skew(power),                  # power_skew
         thd(power),                         # power_thd
-
         crest_factor(shuntV),               # shuntV_crest
+        
         calc_entropy(shuntV),               # shuntV_entropy
         stats.kurtosis(shuntV),             # shuntV_kurt
         np.sqrt(np.mean(shuntV**2)),        # shuntV_rms
         stats.skew(shuntV),                 # shuntV_skew
         thd(shuntV),                        # shuntV_thd
-        zcr(shuntV)                         # shuntV_zcr
     ]
 
     return np.array(features).reshape(1, -1)
