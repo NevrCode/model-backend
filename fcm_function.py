@@ -1,13 +1,11 @@
-import json
-import os
-import firebase_admin
+
 from firebase_admin import messaging
 
-def send_anomaly_notification(device_id, current_value):
+def send_anomaly_notification():
     message = messaging.Message(
         notification=messaging.Notification(
-            title="⚠️ Electromonitor",
-            body=f"Arus tidak normal pada {device_id}. Nilai arus: {current_value} A",
+            title="Electromonitor",
+            body=f"Arus tidak normal pada instalasi listrik anda. cek segera!",
         ),
         android=messaging.AndroidConfig(
             priority="high",

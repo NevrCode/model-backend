@@ -1,3 +1,4 @@
+from collections import deque
 import flask_cors
 import joblib
 from flask import Flask, request, jsonify
@@ -12,6 +13,12 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 import firebase_admin
 from firebase_admin import credentials, firestore
+from feature_extractions import extract_features
+
+app = Flask(__name__)
+flask_cors.CORS(app)
+model = joblib.load("isolation_forest_model.pkl")
+
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
@@ -20,7 +27,28 @@ cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+BROKER_URL = os.getenv("MQTT_BROKER")
+USERNAME = os.getenv("MQTT_USERNAME")
+PASSWORD = os.getenv("MQTT_PASSWORD")
+TOPIC = "get/data/sensors"
+
 buffer = []
+BUFFER_SIZE = 20
+buffer_shuntV = deque(maxlen=BUFFER_SIZE)
+buffer_current = deque(maxlen=BUFFER_SIZE)
+
+def prediction_loop():
+    while True:
+        time.sleep(1)
+
+        if len(buffer_shuntV) == BUFFER_SIZE:
+            X = extract_features(list(buffer_shuntV), list(buffer_current))
+
+            prediction = model.predict(X)[0]
+            print("Prediksi:", prediction)
+
+            if prediction == 1:  
+                send_anomaly_notification()
 
 def save_batch():
     global buffer
@@ -44,17 +72,7 @@ def save_batch():
                 batchCounter += 1
                 totalCounter += 1
             batch.commit()
-        
-        
-
         print(f"Saved batch: {len(data_to_save)} records")
-
-threading.Thread(target=save_batch, daemon=True).start()
-
-BROKER_URL = os.getenv("MQTT_BROKER")
-USERNAME = os.getenv("MQTT_USERNAME")
-PASSWORD = os.getenv("MQTT_PASSWORD")
-TOPIC = "get/data/sensors"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
@@ -63,10 +81,13 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
+        buffer_shuntV.append(payload['shuntV'])
+        buffer_current.append(payload['current'])
         buffer.append(payload) 
 
     except Exception as e:
         print("Error:", e)
+        
 
 client = mqtt.Client()
 client.username_pw_set(USERNAME, PASSWORD)
@@ -76,13 +97,8 @@ client.on_message = on_message
 
 print("Connecting to MQTT...")
 client.connect(BROKER_URL, 8883)
-threading.Thread(target=client.loop_forever, daemon=True).start()
 
 
-app = Flask(__name__)
-flask_cors.CORS(app)
-
-model = joblib.load("isolation_forest_model.pkl")
 
 @app.route('/')
 def home():
@@ -113,11 +129,14 @@ def predict():
 
 @app.route("/test-fcm", methods=["GET"])
 def test_fcm():
-    send_anomaly_notification("device_123", 15.7)
+    send_anomaly_notification()
     return jsonify({"status": "Notification sent"})
-
+    
     
 if __name__ == '__main__':
+    threading.Thread(target=prediction_loop, daemon=True).start()
+    threading.Thread(target=save_batch, daemon=True).start()
+    threading.Thread(target=client.loop_forever, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 
