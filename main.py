@@ -2,6 +2,7 @@ import flask_cors
 import joblib
 from flask import Flask, request, jsonify
 import numpy as np
+from fcm_function import send_anomaly_notification
 
 import os
 import json
@@ -104,7 +105,6 @@ def predict():
     features = np.array([[ data[f] for f in feature_order ]], dtype=float)
 
     pred = model.predict(features)[0] 
-    from fcm_function import send_anomaly_notification
     if pred == 1:
         send_anomaly_notification("device_123", data['current_rms'])
     return jsonify({
@@ -113,7 +113,6 @@ def predict():
 
 @app.route("/test-fcm", methods=["GET"])
 def test_fcm():
-    from fcm_function import send_anomaly_notification
     send_anomaly_notification("device_123", 15.7)
     
 if __name__ == '__main__':
