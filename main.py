@@ -1,9 +1,9 @@
-import os
 import flask_cors
 import joblib
 from flask import Flask, request, jsonify
 import numpy as np
 
+import os
 import json
 import time
 import threading
@@ -24,7 +24,7 @@ buffer = []
 def save_batch():
     global buffer
     while True:
-        time.sleep(1800)  # save every 30 minutes
+        time.sleep(10)  
 
         if len(buffer) == 0:
             continue
@@ -75,38 +75,39 @@ client.on_message = on_message
 
 print("Connecting to MQTT...")
 client.connect(BROKER_URL, 8883)
+client.loop_forever()
 threading.Thread(target=client.loop_forever, daemon=True).start()
+
 
 app = Flask(__name__)
 flask_cors.CORS(app)
 
-model = joblib.load("isolation_forest_model.pkl")
+model = joblib.load("isolation_forest_model_2.pkl")
 
 @app.route('/')
 def home():
     return "Anomaly Detection Service is Running"
 
-
-
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.json
     
-    # Convert JSON to feature array
-    features = np.array([[
-        data["mean"],
-        data["std"],
-        data["peak2peak"],
-        data["crest_factor"],
-        data["skew"],
-        data["kurt"]
-    ]], dtype=float)
-    
-    # Predict
-    pred = model.predict(features)[0]   # 1 = normal, -1 = anomaly
+    feature_order = [
+    'busV_crest', 'busV_entropy', 'busV_kurt', 'busV_rms', 
+    'current_crest','current_entropy', 'current_kurt', 'current_rms', 'current_skew', 'current_thd', 'current_zcr', 
+    'power_crest', 'power_entropy','power_error_abs_mean', 'power_error_mean', 'power_kurt', 'power_rms','power_skew', 'power_thd', 
+    'shuntV_crest', 'shuntV_entropy','shuntV_kurt', 'shuntV_rms', 'shuntV_skew', 'shuntV_thd', 'shuntV_zcr'
+    ]
+    missing = [f for f in feature_order if f not in data]
+    if missing:
+        return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+    features = np.array([[ data[f] for f in feature_order ]], dtype=float)
+
+    pred = model.predict(features)[0] 
 
     return jsonify({
-        "prediction": 1 if pred == 1 else -1
+        "prediction": int(pred)
     })
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
