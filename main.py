@@ -35,6 +35,7 @@ TOPIC = "get/data/sensors"
 buffer = []
 BUFFER_SIZE = 20
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
+buffer_busV = deque(maxlen=BUFFER_SIZE)
 buffer_current = deque(maxlen=BUFFER_SIZE)
 
 def prediction_loop():
@@ -42,7 +43,7 @@ def prediction_loop():
         time.sleep(1)
 
         if len(buffer_shuntV) == BUFFER_SIZE:
-            X = extract_features(list(buffer_shuntV), list(buffer_current))
+            X = extract_features(list(buffer_busV),list(buffer_shuntV), list(buffer_current))
 
             prediction = model.predict(X)[0]
             print("Prediksi:", prediction)
@@ -82,6 +83,7 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         buffer_shuntV.append(payload['shuntV'])
+        buffer_busV.append(payload['busV'])
         buffer_current.append(payload['current'])
         buffer.append(payload) 
 

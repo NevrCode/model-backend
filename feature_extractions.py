@@ -1,32 +1,69 @@
-import scipy.stats as stats
 import numpy as np
-def extract_features(busV, current):
+import scipy.stats as stats
+
+def crest_factor(x):
+    return np.max(np.abs(x)) / (np.sqrt(np.mean(x**2)) + 1e-9)
+
+def calc_entropy(x):
+    x = np.abs(x)
+    x = x / (np.sum(x) + 1e-9)
+    return stats.entropy(x)
+
+def thd(x):
+    """
+    THD sederhana berbasis FFT:
+    THD = sqrt(sum(harmonics^2)) / fundamental
+    """
+    fft_vals = np.abs(np.fft.rfft(x))
+    if len(fft_vals) < 3:
+        return 0
+    
+    fundamental = fft_vals[1] + 1e-9
+    harmonics = fft_vals[2:]
+    return np.sqrt(np.sum(harmonics**2)) / fundamental
+
+def zcr(x):
+    return np.sum(np.diff(np.sign(x)) != 0)
+
+def extract_features(busV, shuntV, current):
     busV = np.array(busV)
+    shuntV = np.array(shuntV)
     current = np.array(current)
-    power = busV * current
 
-    def crest(x): return np.max(np.abs(x)) / np.sqrt(np.mean(x**2))
-    def entropy(x): return stats.entropy(np.abs(x))
-    def zcr(x): return np.sum(np.diff(np.sign(x)) != 0)
+    power = busV * shuntV
+    power_error = power - np.mean(power)
 
-    features = {
-        "busV_crest": crest(busV),
-        "busV_entropy": entropy(busV),
-        "busV_rms": np.sqrt(np.mean(busV**2)),
-        "busV_kurt": stats.kurtosis(busV),
+    # Buat dictionary sesuai urutan fitur
+    features = [
+        crest_factor(busV),                 # busV_crest
+        calc_entropy(busV),                 # busV_entropy
+        stats.kurtosis(busV),               # busV_kurt
+        np.sqrt(np.mean(busV**2)),          # busV_rms
 
-        "current_crest": crest(current),
-        "current_entropy": entropy(current),
-        "current_rms": np.sqrt(np.mean(current**2)),
-        "current_kurt": stats.kurtosis(current),
-        "current_skew": stats.skew(current),
-        "current_zcr": zcr(current),
+        crest_factor(current),              # current_crest
+        calc_entropy(current),              # current_entropy
+        stats.kurtosis(current),            # current_kurt
+        np.sqrt(np.mean(current**2)),       # current_rms
+        stats.skew(current),                # current_skew
+        thd(current),                       # current_thd
+        zcr(current),                       # current_zcr
 
-        "power_crest": crest(power),
-        "power_entropy": entropy(power),
-        "power_rms": np.sqrt(np.mean(power**2)),
-        "power_kurt": stats.kurtosis(power),
-        "power_skew": stats.skew(power),
-    }
+        crest_factor(power),                # power_crest
+        calc_entropy(power),                # power_entropy
+        np.mean(np.abs(power_error)),       # power_error_abs_mean
+        np.mean(power_error),               # power_error_mean
+        stats.kurtosis(power),              # power_kurt
+        np.sqrt(np.mean(power**2)),         # power_rms
+        stats.skew(power),                  # power_skew
+        thd(power),                         # power_thd
 
-    return np.array(list(features.values())).reshape(1, -1)
+        crest_factor(shuntV),               # shuntV_crest
+        calc_entropy(shuntV),               # shuntV_entropy
+        stats.kurtosis(shuntV),             # shuntV_kurt
+        np.sqrt(np.mean(shuntV**2)),        # shuntV_rms
+        stats.skew(shuntV),                 # shuntV_skew
+        thd(shuntV),                        # shuntV_thd
+        zcr(shuntV)                         # shuntV_zcr
+    ]
+
+    return np.array(features).reshape(1, -1)
