@@ -13,7 +13,7 @@ import threading
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, db
 from feature_engineering import extract_features
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ cred_dict = json.loads(firebase_json)
 
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
-db = firestore.client()
+
 
 BROKER_URL = os.getenv("MQTT_BROKER")
 USERNAME = os.getenv("MQTT_USERNAME")
@@ -150,7 +150,6 @@ def test_fcm():
     
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
-    threading.Thread(target=save_item, daemon=True).start()
     threading.Thread(target=client.loop_forever, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
 
