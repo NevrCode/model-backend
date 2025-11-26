@@ -25,7 +25,9 @@ firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
 
 cred = credentials.Certificate(cred_dict)
-firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred, {
+    "databaseURL": "https://mqtt-81b17-default-rtdb.asia-southeast1.firebasedatabase.app/"
+})
 
 
 BROKER_URL = os.getenv("MQTT_BROKER")
