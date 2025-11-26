@@ -7,13 +7,14 @@ from fcm_function import send_anomaly_notification
 
 import os
 import json
+import logging
 import time
 import threading
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import firebase_admin
 from firebase_admin import credentials, firestore
-from feature_extractions import extract_features
+from feature_engineering import extract_features
 
 app = Flask(__name__)
 flask_cors.CORS(app)
@@ -35,57 +36,60 @@ TOPIC = "get/data/sensors"
 buffer = []
 BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
-buffer_busV = deque(maxlen=BUFFER_SIZE)
 buffer_current = deque(maxlen=BUFFER_SIZE)
 
 anomaly_sent = False   
 def prediction_loop():
     global anomaly_sent
+    normal_counter = 0
     while True:
         time.sleep(1)
-
         if len(buffer_shuntV) == BUFFER_SIZE:
             X = extract_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
             prediction = model.predict(x_scaled)[0]
 
-            normal_counter = 0
             if prediction == -1:
                 normal_counter = 0
-                if not anomaly_sent:    # Hanya kirim sekali
+                if not anomaly_sent:    
                     send_anomaly_notification()
                     anomaly_sent = True
-                    print("⚠️ Notif dikirim")
             else:
                 normal_counter += 1
-                if normal_counter >= 3:
+                if normal_counter >= 5:
                     anomaly_sent = False
-                if anomaly_sent:
-                    print("System kembali normal, reset flag")
-                anomaly_sent = False
 
-def save_batch():
-    global buffer
-    while True:
-        time.sleep(30)  
+# def save_batch():
+#     global buffer
+#     while True:
+#         time.sleep(1)  
 
-        if len(buffer) == 0:
-            continue
+#         if len(buffer) == 0:
+#             continue
 
-        data_to_save = buffer.copy()
-        buffer.clear()
+#         data_to_save = buffer.copy()
+#         buffer.clear()
         
-        batch = db.batch()
-        totalCounter = 0
+#         batch = db.batch()
+#         totalCounter = 0
         
-        while totalCounter < len(data_to_save):
-            batchCounter = 0
-            while batchCounter < 500 and totalCounter < len(data_to_save):
-                doc_ref = db.collection("read_datas").document()
-                batch.set(doc_ref, data_to_save[totalCounter])
-                batchCounter += 1
-                totalCounter += 1
-            batch.commit()
+#         while totalCounter < len(data_to_save):
+#             batchCounter = 0
+#             while batchCounter < 500 and totalCounter < len(data_to_save):
+#                 doc_ref = db.collection("read_datas").document()
+#                 batch.set(doc_ref, data_to_save[totalCounter])
+#                 batchCounter += 1
+#                 totalCounter += 1
+#             batch.commit()
+
+def save_item(data):
+
+    for item in data:
+        timestamp = int(time.time() * 1000) 
+        ref_path = f"read_datas/{timestamp}"
+
+        db.reference(ref_path).push(item)
+
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe(TOPIC)
@@ -94,9 +98,8 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         buffer_shuntV.append(payload['shuntV'])
-        buffer_busV.append(payload['busV'])
         buffer_current.append(payload['current'])
-        buffer.append(payload) 
+        save_item(payload)
 
     except Exception as e:
         print("Error:", e)

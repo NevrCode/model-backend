@@ -28,7 +28,6 @@ def extract_features(shuntV, current):
     power = current * shuntV
     power_error = power - np.mean(power)
 
-    # Buat dictionary sesuai urutan fitur
     features = [
         crest_factor(current),              # current_crest
         calc_entropy(current),              # current_entropy
