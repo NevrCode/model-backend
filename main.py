@@ -122,7 +122,6 @@ def test_fcm():
     
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
-    threading.Thread(target=save_batch, daemon=True).start()
     threading.Thread(target=client.loop_forever, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
 
