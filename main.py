@@ -13,7 +13,7 @@ import threading
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import credentials, firestore
 from feature_engineering import extract_features
 
 app = Flask(__name__)
@@ -25,10 +25,8 @@ firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
 
 cred = credentials.Certificate(cred_dict)
-firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://mqtt-81b17-default-rtdb.asia-southeast1.firebasedatabase.app/"
-})
-
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 BROKER_URL = os.getenv("MQTT_BROKER")
 USERNAME = os.getenv("MQTT_USERNAME")
@@ -46,6 +44,7 @@ def prediction_loop():
     normal_counter = 0
     while True:
         time.sleep(1)
+
         if len(buffer_shuntV) == BUFFER_SIZE:
             X = extract_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
@@ -61,37 +60,8 @@ def prediction_loop():
                 if normal_counter >= 5:
                     anomaly_sent = False
 
-# def save_batch():
-#     global buffer
-#     while True:
-#         time.sleep(1)  
-
-#         if len(buffer) == 0:
-#             continue
-
-#         data_to_save = buffer.copy()
-#         buffer.clear()
-        
-#         batch = db.batch()
-#         totalCounter = 0
-        
-#         while totalCounter < len(data_to_save):
-#             batchCounter = 0
-#             while batchCounter < 500 and totalCounter < len(data_to_save):
-#                 doc_ref = db.collection("read_datas").document()
-#                 batch.set(doc_ref, data_to_save[totalCounter])
-#                 batchCounter += 1
-#                 totalCounter += 1
-#             batch.commit()
-
-def save_item(data):
-
-    for item in data:
-        timestamp = int(time.time() * 1000) 
-        ref_path = f"read_datas/{timestamp}"
-
-        db.reference(ref_path).push(item)
-
+def save_batch(data):
+    doc_ref = db.collection("read_datas").document().set(data)
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe(TOPIC)
@@ -101,7 +71,7 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         buffer_shuntV.append(payload['shuntV'])
         buffer_current.append(payload['current'])
-        save_item(payload)
+        save_batch(data=payload)
 
     except Exception as e:
         print("Error:", e)
@@ -152,6 +122,7 @@ def test_fcm():
     
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
+    threading.Thread(target=save_batch, daemon=True).start()
     threading.Thread(target=client.loop_forever, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
 
