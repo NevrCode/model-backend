@@ -14,12 +14,12 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 import firebase_admin
 from firebase_admin import credentials, firestore
-from feature_engineering import extract_features
+from feature_engineering import get_features
 
 app = Flask(__name__)
 flask_cors.CORS(app)
-model = joblib.load("isolation_forest_model_20_feature.pkl")
-scaler = joblib.load("scaler.pkl")
+model = joblib.load(os.getenv("MODEL_PATH"))
+scaler = joblib.load(os.getenv("SCALER_PATH"))
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
@@ -31,8 +31,9 @@ db = firestore.client()
 BROKER_URL = os.getenv("MQTT_BROKER")
 USERNAME = os.getenv("MQTT_USERNAME")
 PASSWORD = os.getenv("MQTT_PASSWORD")
-TOPIC = "get/data/sensors"
-
+TOPIC = os.getenv("MQTT_TOPIC")
+WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
+THRESHOLD = float(os.getenv("ANOMALY_THRESHOLD"))
 buffer = []
 BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
@@ -46,11 +47,14 @@ def prediction_loop():
         time.sleep(1)
 
         if len(buffer_shuntV) == BUFFER_SIZE:
-            X = extract_features(list(buffer_shuntV), list(buffer_current))
+            X = get_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
-            prediction = model.predict(x_scaled)[0]
-
-            if prediction == -1:
+            score = -model.score_samples(x_scaled)[0]
+            
+            
+            is_warning = score >= warning_threshold
+            is_anomaly = score >= threshold
+            if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
                     send_anomaly_notification()
@@ -123,7 +127,7 @@ def test_fcm():
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
     threading.Thread(target=client.loop_forever, daemon=True).start()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # app.run(host="0.0.0.0", port=5000, debug=True)
 
 
 
