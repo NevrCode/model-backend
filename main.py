@@ -52,8 +52,8 @@ def prediction_loop():
             score = -model.score_samples(x_scaled)[0]
             
             
-            is_warning = score >= warning_threshold
-            is_anomaly = score >= threshold
+            is_warning = score >= WARNING_TRESHOLD
+            is_anomaly = score >= THRESHOLD
             if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
