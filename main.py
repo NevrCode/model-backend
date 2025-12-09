@@ -62,7 +62,7 @@ def prediction_loop():
         if len(buffer_shuntV) == BUFFER_SIZE:
             X = get_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
-            score = -model.score_samples(x_scaled)[0]
+            score = -model.score_samples(X)[0]
             
             
             is_warning = score >= WARNING_TRESHOLD
