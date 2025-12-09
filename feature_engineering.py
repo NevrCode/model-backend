@@ -23,17 +23,11 @@ def get_features(shuntV, current):
         calc_entropy(current),              # current_entropy
         np.sqrt(np.mean(current**2)),       # current_rms
         stats.skew(current),                # current_skew
-        
-        calc_entropy(power),                # power_entropy
         np.mean(power_error),               # power_error_mean
         
         stats.kurtosis(power),              # power_kurt
         np.sqrt(np.mean(power**2)),         # power_rms
-        crest_factor(shuntV),               # shuntV_crest
-        
-        calc_entropy(shuntV),               # shuntV_entropy
         stats.kurtosis(shuntV),             # shuntV_kurt
-        np.sqrt(np.mean(shuntV**2)),        # shuntV_rms
         stats.skew(shuntV),                 # shuntV_skew
     ]
 

@@ -24,8 +24,9 @@ logging.basicConfig(
 load_dotenv()
 app = Flask(__name__)
 flask_cors.CORS(app)
-model = joblib.load(os.getenv("MODEL_PATH"))
-scaler = joblib.load(os.getenv("SCALER_PATH"))
+model = joblib.load("news/isolation_forest_model_baru.pkl")
+scaler = joblib.load("news/scaler.pkl")
+pca = joblib.load("news/pca.pkl")
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
@@ -45,7 +46,7 @@ PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = os.getenv("MQTT_TOPIC")
 ALERT_TOPIC = os.getenv("ALERT_TOPIC")
 WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
-THRESHOLD =  0.01952215752464126
+THRESHOLD =  0.61
 buffer = []
 BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
@@ -62,7 +63,8 @@ def prediction_loop():
         if len(buffer_shuntV) == BUFFER_SIZE:
             X = get_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
-            score = -model.score_samples(X)[0]
+            X_pca = pca.transform(x_scaled)
+            score = -model.score_samples(X_pca)[0]
             logging.info(f"Anomaly detected with score: {score}")
             
             is_warning = score >= WARNING_TRESHOLD
