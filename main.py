@@ -24,9 +24,9 @@ logging.basicConfig(
 load_dotenv()
 app = Flask(__name__)
 flask_cors.CORS(app)
-model = joblib.load("news/isolation_forest_model_baru.pkl")
-scaler = joblib.load("news/scaler.pkl")
-pca = joblib.load("news/pca.pkl")
+model = joblib.load("new/isolation_forest_model_baru.pkl")
+scaler = joblib.load("new/scaler.pkl")
+pca = joblib.load("new/pca.pkl")
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
@@ -46,7 +46,7 @@ PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = os.getenv("MQTT_TOPIC")
 ALERT_TOPIC = os.getenv("ALERT_TOPIC")
 WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
-THRESHOLD =  0.61
+THRESHOLD =  0.7
 buffer = []
 BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
