@@ -22,12 +22,12 @@ flask_cors.CORS(app)
 model = joblib.load(os.getenv("MODEL_PATH"))
 scaler = joblib.load(os.getenv("SCALER_PATH"))
 
-# firebase_json = os.getenv("FIREBASE_CRED")
-# cred_dict = json.loads(firebase_json)
-firebase_path = os.getenv("FIREBASE_CRED")
+firebase_json = os.getenv("FIREBASE_CRED")
+cred_dict = json.loads(firebase_json)
+# firebase_path = os.getenv("FIREBASE_CRED")
 
-with open(firebase_path, "r") as f:
-    cred_dict = json.load(f)
+# with open(firebase_path, "r") as f:
+#     cred_dict = json.load(f)
 
 
 cred = credentials.Certificate(cred_dict)
