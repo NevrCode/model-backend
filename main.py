@@ -63,7 +63,7 @@ def prediction_loop():
             X = get_features(list(buffer_shuntV), list(buffer_current))
             x_scaled = scaler.transform(X)
             score = -model.score_samples(X)[0]
-            
+            logging.info(f"Anomaly detected with score: {score}")
             
             is_warning = score >= WARNING_TRESHOLD
             is_anomaly = score >= THRESHOLD
