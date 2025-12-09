@@ -23,7 +23,6 @@ def get_features(shuntV, current):
         calc_entropy(current),              # current_entropy
         np.sqrt(np.mean(current**2)),       # current_rms
         stats.skew(current),                # current_skew
-        np.mean(power_error),               # power_error_mean
         
         stats.kurtosis(power),              # power_kurt
         np.sqrt(np.mean(power**2)),         # power_rms
