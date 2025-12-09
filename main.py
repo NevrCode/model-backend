@@ -16,6 +16,11 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from feature_engineering import get_features
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
 load_dotenv()
 app = Flask(__name__)
 flask_cors.CORS(app)
