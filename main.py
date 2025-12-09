@@ -65,7 +65,7 @@ def prediction_loop():
             x_scaled = scaler.transform(X)
             X_pca = pca.transform(x_scaled)
             score = -model.score_samples(X_pca)[0]
-            logging.info(f"Anomaly detected with score: {score}")
+            logging.info(f"Anomaly score: {score}")
             
             is_warning = score <= WARNING_TRESHOLD
             is_anomaly = score <= THRESHOLD
