@@ -67,8 +67,8 @@ def prediction_loop():
             score = -model.score_samples(X_pca)[0]
             logging.info(f"Anomaly detected with score: {score}")
             
-            is_warning = score >= WARNING_TRESHOLD
-            is_anomaly = score >= THRESHOLD
+            is_warning = score <= WARNING_TRESHOLD
+            is_anomaly = score <= THRESHOLD
             if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
