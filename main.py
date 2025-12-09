@@ -142,12 +142,17 @@ def test_fcm():
     send_anomaly_notification()
     return jsonify({"status": "Notification sent"})
     
-    
-if __name__ == '__main__':
+
+def start_background_services():
     threading.Thread(target=prediction_loop, daemon=True).start()
     client.loop_start()
-    logging.info("Starting Flask app...")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    logging.info("Background services started.")
+# if __name__ == '__main__':
+    # threading.Thread(target=prediction_loop, daemon=True).start()
+    # client.loop_start()
+    # logging.info("Starting Flask app...")
+    # app.run(host="0.0.0.0", port=5000, debug=False)
 
+start_background_services()
 
 
