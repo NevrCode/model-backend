@@ -1,5 +1,17 @@
 import numpy as np
 import scipy.stats as stats
+import pandas as pd
+
+FEATURE_NAMES = [
+    "current_entropy",
+    "current_rms",
+    "current_skew",
+    "power_kurt",
+    "power_rms",
+    "shuntV_kurt",
+    "shuntV_skew"
+]
+
 
 def crest_factor(x):
     return np.max(np.abs(x)) / (np.sqrt(np.mean(x**2)) + 1e-9)
@@ -29,5 +41,5 @@ def get_features(shuntV, current):
         stats.kurtosis(shuntV),             # shuntV_kurt
         stats.skew(shuntV),                 # shuntV_skew
     ]
-
-    return np.array(features).reshape(1, -1)
+    feature = np.array(features).reshape(1, -1)
+    return pd.DataFrame(feature, columns=FEATURE_NAMES)
