@@ -89,7 +89,6 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     try:
-        print("Message received on topic: " + msg.topic)
         payload = json.loads(msg.payload.decode())
         buffer_shuntV.append(payload['shuntV'])
         buffer_current.append(payload['current'])
