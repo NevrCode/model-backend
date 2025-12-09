@@ -4,7 +4,7 @@ import joblib
 from flask import Flask, request, jsonify
 import numpy as np
 from fcm_function import send_anomaly_notification
-
+from dotenv import load_dotenv
 import os
 import json
 import logging
@@ -16,13 +16,19 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from feature_engineering import get_features
 
+load_dotenv()
 app = Flask(__name__)
 flask_cors.CORS(app)
 model = joblib.load(os.getenv("MODEL_PATH"))
 scaler = joblib.load(os.getenv("SCALER_PATH"))
 
-firebase_json = os.getenv("FIREBASE_CRED")
-cred_dict = json.loads(firebase_json)
+# firebase_json = os.getenv("FIREBASE_CRED")
+# cred_dict = json.loads(firebase_json)
+firebase_path = os.getenv("FIREBASE_CRED")
+
+with open(firebase_path, "r") as f:
+    cred_dict = json.load(f)
+
 
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
@@ -32,6 +38,7 @@ BROKER_URL = os.getenv("MQTT_BROKER")
 USERNAME = os.getenv("MQTT_USERNAME")
 PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = os.getenv("MQTT_TOPIC")
+ALERT_TOPIC = os.getenv("ALERT_TOPIC")
 WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
 THRESHOLD = float(os.getenv("ANOMALY_THRESHOLD"))
 buffer = []
@@ -39,6 +46,7 @@ BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
 buffer_current = deque(maxlen=BUFFER_SIZE)
 
+    
 anomaly_sent = False   
 def prediction_loop():
     global anomaly_sent
@@ -57,11 +65,13 @@ def prediction_loop():
             if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
+                    client.publish(ALERT_TOPIC, "1")
                     send_anomaly_notification()
                     anomaly_sent = True
             else:
                 normal_counter += 1
                 if normal_counter >= 5:
+                    client.publish(ALERT_TOPIC, "0") 
                     anomaly_sent = False
 
 def save_batch(data):
@@ -127,7 +137,7 @@ def test_fcm():
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
     client.loop_start()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
 
 

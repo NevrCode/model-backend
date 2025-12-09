@@ -1,3 +1,4 @@
 .env
 mqtt-81b17-firebase-adminsdk-fbsvc-7f99002068.json
 control.py
+venv/
