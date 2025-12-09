@@ -65,12 +65,14 @@ def prediction_loop():
             if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
+                    logging.info(f"Anomaly detected with score: {score}")
                     client.publish(ALERT_TOPIC, "1")
                     send_anomaly_notification()
                     anomaly_sent = True
             else:
                 normal_counter += 1
                 if normal_counter >= 5:
+                    logging.info("System back to normal.")
                     client.publish(ALERT_TOPIC, "0") 
                     anomaly_sent = False
 
@@ -124,6 +126,7 @@ def predict():
     pred = model.predict(features)[0] 
     if pred == 1:
         send_anomaly_notification("device_123", data['current_rms'])
+        logging.info("Anomaly detected via /predict endpoint.")
     return jsonify({
         "prediction": int(pred)
     })
@@ -137,6 +140,7 @@ def test_fcm():
 if __name__ == '__main__':
     threading.Thread(target=prediction_loop, daemon=True).start()
     client.loop_start()
+    logging.info("Starting Flask app...")
     app.run(host="0.0.0.0", port=5000, debug=False)
 
 
