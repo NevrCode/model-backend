@@ -45,7 +45,7 @@ PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = os.getenv("MQTT_TOPIC")
 ALERT_TOPIC = os.getenv("ALERT_TOPIC")
 WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
-THRESHOLD = float(os.getenv("ANOMALY_THRESHOLD"))
+THRESHOLD =  0.01952215752464126
 buffer = []
 BUFFER_SIZE = 10
 buffer_shuntV = deque(maxlen=BUFFER_SIZE)
