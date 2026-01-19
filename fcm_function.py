@@ -18,4 +18,4 @@ def send_anomaly_notification():
     )
 
     response = messaging.send(message)
-    logging.info("Notification Sent: ", response)
+    logging.info(f"Notification Sent: {response}")
