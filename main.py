@@ -3,6 +3,7 @@ import flask_cors
 import joblib
 from flask import Flask, request, jsonify
 import numpy as np
+import pandas as pd
 from fcm_function import send_anomaly_notification
 from dotenv import load_dotenv
 import os
@@ -30,11 +31,6 @@ pca = joblib.load("new/pca.pkl")
 
 firebase_json = os.getenv("FIREBASE_CRED")
 cred_dict = json.loads(firebase_json)
-# firebase_path = os.getenv("FIREBASE_CRED")
-
-# with open(firebase_path, "r") as f:
-#     cred_dict = json.load(f)
-
 
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
@@ -45,6 +41,7 @@ USERNAME = os.getenv("MQTT_USERNAME")
 PASSWORD = os.getenv("MQTT_PASSWORD")
 TOPIC = os.getenv("MQTT_TOPIC")
 ALERT_TOPIC = os.getenv("ALERT_TOPIC")
+TELEMETRI_TOPIC = os.getenv("TELEMETRI_TOPIC")
 WARNING_TRESHOLD = float(os.getenv("WARNING_THRESHOLD"))
 THRESHOLD =  0.7
 buffer = []
@@ -65,10 +62,8 @@ def prediction_loop():
             x_scaled = scaler.transform(X)
             X_pca = pca.transform(x_scaled)
             score = -model.score_samples(X_pca)[0]
-            logging.info(f"Anomaly score: {score}")
             
-            is_warning = score <= WARNING_TRESHOLD
-            is_anomaly = score <= THRESHOLD
+            is_anomaly = score >= THRESHOLD
             if is_anomaly:
                 normal_counter = 0
                 if not anomaly_sent:    
@@ -82,6 +77,65 @@ def prediction_loop():
                     logging.info("System back to normal.")
                     client.publish(ALERT_TOPIC, "0") 
                     anomaly_sent = False
+                    
+def prediction_loops():
+    global anomaly_sent
+    normal_counter = 0
+    in_anomaly_state = False
+
+    while True:
+        time.sleep(1)
+
+        if len(buffer_shuntV) == BUFFER_SIZE:
+            X = get_features(list(buffer_shuntV), list(buffer_current))
+            
+            send_analitics_data(X=X)
+            x_scaled = scaler.transform(X)
+            X_pca = pca.transform(x_scaled)
+
+            raw_score = model.score_samples(X_pca)[0]
+            score = -raw_score 
+
+            is_anomaly = score >= THRESHOLD  
+
+            if is_anomaly:
+                normal_counter = 0
+
+                if not in_anomaly_state:
+                    logging.info(f"Anomaly detected with score: {score:.4f}")
+                    client.publish(ALERT_TOPIC, "1")
+                    send_anomaly_notification()
+
+                    in_anomaly_state = True
+                    anomaly_sent = True
+
+            else:
+                if in_anomaly_state:
+                    normal_counter += 1
+
+                    if normal_counter >= 5:
+                        logging.info("System back to normal.")
+                        client.publish(ALERT_TOPIC, "0")
+
+                        in_anomaly_state = False
+                        anomaly_sent = False
+                        normal_counter = 0
+
+
+def send_analitics_data(X: pd.DataFrame):
+    row = X.iloc[0] 
+
+    payload = {
+        "current_entropy": float(row["current_entropy"]),
+        "current_rms":     float(row["current_rms"]),
+        "current_skew":    float(row["current_skew"]),
+        "power_kurt":      float(row["power_kurt"]),
+        "power_rms":       float(row["power_rms"]),
+        "shuntV_kurt":     float(row["shuntV_kurt"]),
+        "shuntV_skew":     float(row["shuntV_skew"])
+    }
+    client.publish(TELEMETRI_TOPIC, json.dumps(payload), qos=0)
+
 
 def save_batch(data):
     doc_ref = db.collection("read_datas").document().set(data)
@@ -145,7 +199,7 @@ def test_fcm():
     
 
 def start_background_services():
-    threading.Thread(target=prediction_loop, daemon=True).start()
+    threading.Thread(target=prediction_loops, daemon=True).start()
     client.loop_start()
     logging.info("Background services started.")
 # if __name__ == '__main__':

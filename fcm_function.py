@@ -1,4 +1,4 @@
-
+import logging
 from firebase_admin import messaging
 
 def send_anomaly_notification():
@@ -18,4 +18,4 @@ def send_anomaly_notification():
     )
 
     response = messaging.send(message)
-    print("Notification sent:", response)
+    logging.info("Notification Sent: ", response)
